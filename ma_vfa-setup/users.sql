@@ -15,3 +15,6 @@ grant ALL on schema vfa to analyst;
 grant all on ALL TABLES IN schema tmp to analyst;
 grant all on ALL TABLES IN schema vfa to analyst;
 grant select on ALL TABLES IN schema lookup to analyst;
+
+
+ALTER ROLE ma SET search_path TO "$user", public, topology;
