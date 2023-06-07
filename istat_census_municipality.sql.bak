@@ -1,0 +1,38 @@
+create table bzame.census_2011_municip_2022 as 
+select c.fid as fid_sez2011, c.ogc_fid ogc_fid_sez2011, c.sez2011, c.sez, c.ace
+		, m.cod_rip, m.cod_reg, m.cod_prov, m.pro_com
+		, m.geom geom_pro_com, c.geom geom_sez2011, ST_Intersection(m.geom, c.geom) geom_intersection
+		, st_area(ST_Intersection(m.geom, c.geom)) geom_intersection_area
+from bzame.census_2011 c 
+	join bzame.municipality_2022 m on ST_Intersects(m.geom, c.geom)
+;
+
+
+create table bzame.census_2022 as 
+select * 
+from (
+	select fid_sez2011, ogc_fid_sez2011, sez2011, sez, ace
+			, cod_rip, cod_reg, cod_prov, pro_com
+			, geom_pro_com, geom_sez2011, geom_intersection, geom_intersection_area
+			, row_number() over(partition by sez2011 order by geom_intersection_area desc) rn
+	from bzame.census_2011_municip_2022
+) t 
+where rn = 1
+;
+
+
+create table bzame.ace_2022 as 
+select 
+		  to_char(
+		  	(cod_reg::int * 1e9 + pro_com::int * 1e3 + ace::int)
+		  	, 'FM00000000000'
+	  	) as cod_istat
+		, cod_rip, cod_reg, cod_prov as cod_pro, pro_com, ace
+		, to_char(
+			pro_com::int * 1e3 + ace::int 
+			, 'FM000000000'
+		) procom_ace 
+		, ST_MakeValid(ST_Union(geom_sez2011)) geom
+from bzame.census_2011_municip_2022
+group by 1, 2, 3, 4, 5, 6, 7
+;
